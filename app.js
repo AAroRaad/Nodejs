@@ -1,3 +1,4 @@
+require("dotenv").config();
 const path = require("path");
 
 const express = require("express");
@@ -5,17 +6,21 @@ const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const session = require("express-session");
 const MongoDBStore = require("connect-mongodb-session")(session);
+const csrf = require("csurf");
+const flash = require("connect-flash");
+const flashMessage = require("./middleware/flashMessage");
 
 const errorController = require("./controllers/error");
 const User = require("./models/user");
 
-const MONGODB_URI = "mongodb://localhost:27017/shop";
+const MONGODB_URI = process.env.MONGODB_URI;
 
 const app = express();
 const store = new MongoDBStore({
   uri: MONGODB_URI,
   collection: "sessions",
 });
+const csrfProtection = csrf();
 
 app.set("view engine", "ejs");
 app.set("views", "views");
@@ -24,27 +29,38 @@ const adminRoutes = require("./routes/admin");
 const shopRoutes = require("./routes/shop");
 const authRoutes = require("./routes/auth");
 
-app.use(bodyParser.urlencoded());
+app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, "public")));
+
 app.use(
   session({
-    secret: "my secret",
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     store: store,
   })
 );
 
-app.use((req, res, next) => {
-  if (!req.session.user) {
-    return next();
+app.use(csrfProtection);
+app.use(flash());
+app.use(flashMessage);
+
+// Load user if session exists
+app.use(async (req, res, next) => {
+  if (!req.session.user) return next();
+  try {
+    req.user = await User.findById(req.session.user._id);
+    next();
+  } catch (err) {
+    console.log(err);
+    next(err);
   }
-  User.findById(req.session.user._id)
-    .then((user) => {
-      req.user = user;
-      next();
-    })
-    .catch((err) => console.log(err));
+});
+
+app.use((req, res, next) => {
+  res.locals.isAuthenticated = req.session.isLoggedIn || false;
+  res.locals.csrfToken = req.csrfToken();
+  next();
 });
 
 // app.use((req, res, next) => {
@@ -54,11 +70,23 @@ app.use((req, res, next) => {
 //   next(); // allows the request to continue to the next middleware in line
 // });
 
+// Routes
 app.use("/admin", adminRoutes);
 app.use(shopRoutes);
 app.use(authRoutes);
 
+// 404 page
 app.use(errorController.get404);
+
+// Global error handler (optional)
+app.use((error, req, res, next) => {
+  console.log(error);
+  res.status(500).render("500", {
+    pageTitle: "Error!",
+    path: "/500",
+    isAuthenticated: req.session.isLoggedIn,
+  });
+});
 
 mongoose
   .connect(MONGODB_URI)

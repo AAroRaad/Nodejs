@@ -7,6 +7,12 @@
    <%- include('../includes/navigation.ejs') %>
 
     <main>
+        <% if (errorMessage) { %>
+            <div class="user-message user-message--error"><%= errorMessage %></div>
+        <% } %>
+        <% if (successMessage) { %>
+            <div class="user-message user-message--success"><%= successMessage %></div>
+        <% } %>
         <form class="product-form" action="/admin/<% if (editing) { %>edit-product<% } else { %>add-product<% } %>" method="POST">
             <div class="form-control">
                 <label for="title">Title</label>
@@ -28,6 +34,7 @@
                 <input type="hidden" value="<%= product._id %>" name="productId">
             <% } %>
 
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <button class="btn" type="submit"><% if (editing) { %>Update Product<% } else { %>Add Product<% } %></button>
         </form>
     </main>

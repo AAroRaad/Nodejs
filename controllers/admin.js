@@ -1,99 +1,133 @@
 const Product = require("../models/product");
 
+// ===== GET ADD PRODUCT =====
 exports.getAddProduct = (req, res, next) => {
   res.render("admin/edit-product", {
     pageTitle: "Add Product",
     path: "/admin/add-product",
     editing: false,
-    isAuthenticated: req.session.isLoggedIn,
   });
 };
 
-exports.postAddProduct = (req, res, next) => {
-  const title = req.body.title;
-  const imageUrl = req.body.imageUrl;
-  const price = req.body.price;
-  const description = req.body.description;
+// ===== POST ADD PRODUCT =====
+exports.postAddProduct = async (req, res, next) => {
+  const { title, imageUrl, price, description } = req.body;
+
+  if (!title || !price || !imageUrl || !description) {
+    req.flash("error", "All fields are required.");
+    return res.redirect("/admin/add-product");
+  }
 
   const product = new Product({
-    title: title,
-    price: price,
-    description: description,
-    imageUrl: imageUrl,
+    title,
+    price,
+    description,
+    imageUrl,
     userId: req.user,
   });
-  product
-    .save()
-    .then((result) => {
-      console.log("Created Product!");
-      res.redirect("/admin/products");
-    })
-    .catch((err) => console.log(err));
+
+  try {
+    await product.save();
+    console.log("Created Product!");
+    req.flash("success", "Product added successfully");
+    res.redirect("/admin/products");
+  } catch (err) {
+    console.log(err);
+    req.flash("error", "Failed to create product.");
+    res.redirect("/admin/add-product");
+  }
 };
 
-exports.getEditProduct = (req, res, next) => {
+// ===== GET EDIT PRODUCT =====
+exports.getEditProduct = async (req, res, next) => {
   const editMode = req.query.edit;
   if (!editMode) {
     return res.redirect("/");
   }
+
   const productId = req.params.productId;
-  Product.findById(productId)
-    .then((product) => {
-      if (!product) res.redirect("/");
-      res.render("admin/edit-product", {
-        product: product,
-        pageTitle: product.title,
-        path: "/admin/edit-product",
-        editing: editMode,
-        isAuthenticated: req.session.isLoggedIn,
-      });
-    })
-    .catch((err) => console.log(err));
+  try {
+    const product = await Product.findById(productId);
+    if (!product) return res.redirect("/");
+
+    res.render("admin/edit-product", {
+      product,
+      pageTitle: product.title,
+      path: "/admin/edit-product",
+      editing: editMode,
+    });
+  } catch (err) {
+    console.log(err);
+    res.redirect("/admin/products");
+  }
 };
 
-exports.postEditProduct = (req, res, next) => {
+// ===== POST EDIT PRODUCT =====
+exports.postEditProduct = async (req, res, next) => {
+  const { productId, title, imageUrl, price, description } = req.body;
+
+  try {
+    const product = await Product.findById(productId);
+    if (!product) {
+      req.flash("error", "Product not found.");
+      return res.redirect("/admin/products");
+    }
+    if (product.userId.toString() !== req.user._id.toString()) {
+      req.flash("error", "You have not access to edit this product.");
+      return res.redirect("/admin/products");
+    }
+    product.title = title;
+    product.price = price;
+    product.imageUrl = imageUrl;
+    product.description = description;
+    await product.save();
+    console.log("UPDATED PRODUCT");
+    req.flash("success", "Product updated successfully");
+    res.redirect("/admin/products");
+  } catch (err) {
+    console.log(err);
+    req.flash("error", "Failed to update product.");
+    res.redirect("/admin/products");
+  }
+};
+
+// ===== POST DELETE PRODUCT =====
+exports.postDeleteProduct = async (req, res, next) => {
   const productId = req.body.productId;
-  const updatedTitle = req.body.title;
-  const updatedImageUrl = req.body.imageUrl;
-  const updatePrice = req.body.price;
-  const updatedDescription = req.body.description;
 
-  Product.findById(productId)
-    .then((product) => {
-      product.title = updatedTitle;
-      product.price = updatePrice;
-      product.imageUrl = updatedImageUrl;
-      product.description = updatedDescription;
-      return product.save();
-    })
-    .then((result) => {
-      console.log("UPDATED PRODUCT");
-      res.redirect("/admin/products");
-    })
-    .catch((err) => console.log(err));
+  try {
+    const product = await Product.deleteOne({
+      _id: productId,
+      userId: req.user._id,
+    });
+    if (product.userId.toString() !== req.user._id.toString()) {
+      req.flash("error", "You have not access to delete this product.");
+      return res.redirect("/admin/products");
+    }
+    console.log("DESTROYED PRODUCT");
+    req.flash("success", "Product deleted successfully");
+    res.redirect("/admin/products");
+  } catch (err) {
+    console.log(err);
+    req.flash("error", "Failed to delete product.");
+    res.redirect("/admin/products");
+  }
 };
 
-exports.postDeleteProduct = (req, res, next) => {
-  const productId = req.body.productId;
-  Product.findByIdAndDelete(productId)
-    .then(() => {
-      console.log("DESTROYED PRODUCT");
-      res.redirect("/admin/products");
-    })
-    .catch((err) => console.log(err));
-};
-
-exports.getProducts = (req, res, next) => {
-  Product.find()
+// ===== GET ALL PRODUCTS =====
+exports.getProducts = async (req, res, next) => {
+  try {
+    const products = await Product.find({ userId: req.user._id });
     // .select("title price -_id")
-    // .populate("userId", "name")
-    .then((products) => {
-      res.render("admin/products", {
-        prods: products,
-        pageTitle: "Admin Products",
-        path: "/admin/products",
-        isAuthenticated: req.session.isLoggedIn,
-      });
-    })
-    .catch((err) => console.log(err));
+    // .populate("userId", "name");
+    res.render("admin/products", {
+      prods: products,
+      pageTitle: "Admin Products",
+      path: "/admin/products",
+    });
+  } catch (err) {
+    console.log(err);
+    req.flash("error", "Failed to fetch products.");
+    res.redirect("/");
+  }
 };

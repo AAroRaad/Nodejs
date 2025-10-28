@@ -1,122 +1,139 @@
 const Product = require("../models/product");
 const Order = require("../models/order");
-const user = require("../models/user");
 
-exports.getProducts = (req, res, next) => {
-  Product.find()
-    .then((products) => {
-      res.render("shop/product-list", {
-        prods: products,
-        pageTitle: "All Products",
-        path: "/products",
-        isAuthenticated: req.session.isLoggedIn
-      });
-    })
-    .catch((err) => {
-      console.log(err);
+// ===== GET ALL PRODUCTS =====
+exports.getProducts = async (req, res, next) => {
+  try {
+    const products = await Product.find();
+    res.render("shop/product-list", {
+      prods: products,
+      pageTitle: "All Products",
+      path: "/products",
     });
+  } catch (err) {
+    console.log(err);
+    req.flash("error", "Failed to fetch products.");
+  }
 };
 
-exports.getProduct = (req, res, next) => {
+// ===== GET SINGLE PRODUCT =====
+exports.getProduct = async (req, res, next) => {
   const productId = req.params.productId;
-  Product.findById(productId)
-    .then((product) => {
-      res.render("shop/product-detail", {
-        product: product,
-        pageTitle: product.title,
-        path: "/products",
-        isAuthenticated: req.session.isLoggedIn
-      });
-    })
-    .catch((err) => console.log(err));
-};
-
-exports.getIndex = (req, res, next) => {
-  Product.find()
-    .then((products) => {
-      res.render("shop/index", {
-        prods: products,
-        pageTitle: "Shop",
-        path: "/",
-        isAuthenticated: req.session.isLoggedIn
-      });
-    })
-    .catch((err) => {
-      console.log(err);
+  try {
+    const product = await Product.findById(productId);
+    if (!product) {
+      req.flash("error", "Product not found.");
+      return res.redirect("/products");
+    }
+    res.render("shop/product-detail", {
+      product,
+      pageTitle: product.title,
+      path: "/products",
     });
+  } catch (err) {
+    console.log(err);
+    req.flash("error", "Failed to fetch product.");
+  }
 };
 
-exports.getCart = (req, res, next) => {
-  req.user
-    .populate("cart.items.productId")
-    .then((user) => {
-      const products = user.cart.items;
-      res.render("shop/cart", {
-        path: "/cart",
-        pageTitle: "Your Cart",
-        products: products,
-        isAuthenticated: req.session.isLoggedIn
-      });
-    })
-    .catch((err) => console.log(err));
-};
-
-exports.postCart = (req, res, next) => {
-  const productId = req.body.productId;
-  Product.findById(productId)
-    .then((product) => {
-      return req.user.addToCart(product);    
-    })
-    .then((result) => {
-      console.log("result", result);
-      res.redirect("/cart");
+// ===== GET SHOP INDEX =====
+exports.getIndex = async (req, res, next) => {
+  try {
+    const products = await Product.find();
+    res.render("shop/index", {
+      prods: products,
+      pageTitle: "Shop",
+      path: "/",
     });
+  } catch (err) {
+    console.log(err);
+    req.flash("error", "Failed to fetch products.");
+  }
 };
 
-exports.postCartDeleteProduct = (req, res, next) => {
+// ===== GET CART =====
+exports.getCart = async (req, res, next) => {
+  try {
+    const user = await req.user.populate("cart.items.productId");
+    const products = user.cart.items;
+    res.render("shop/cart", {
+      path: "/cart",
+      pageTitle: "Your Cart",
+      products: products,
+    });
+  } catch (err) {
+    console.log(err);
+    req.flash("error", "Failed to load cart.");
+    res.redirect("/");
+  }
+};
+
+// ===== POST ADD TO CART =====
+exports.postCart = async (req, res, next) => {
   const productId = req.body.productId;
-  req.user
-    .removeFromCart(productId)
-    .then(() => {
-      res.redirect("/cart");
-    })
-    .catch((err) => console.log(err));
+  try {
+    const product = await Product.findById(productId);
+    if (!product) {
+      req.flash("error", "Product not found.");
+      return res.redirect("/products");
+    }
+    await req.user.addToCart(product);
+    res.redirect("/cart");
+  } catch (err) {
+    console.log(err);
+    req.flash("error", "Failed to add product to cart.");
+    res.redirect("/products");
+  }
 };
 
-exports.postOrder = (req, res, next) => {
-  req.user
-    .populate("cart.items.productId")
-    .then((user) => {
-      const products = user.cart.items.map((i) => {
-        return { quantity: i.quantity, product: { ...i.productId._doc } };
-      });
-      const order = new Order({
-        user: {
-          name: req.user.name,
-          userId: req.user,
-        },
-        products: products,
-      });
-      return order.save();
-    })
-    .then((result) => {
-      return req.user.clearCart();
-    })
-    .then(() => {
-      res.redirect("/orders");
-    })
-    .catch((err) => console.log(err));
+// ===== POST REMOVE FROM CART =====
+exports.postCartDeleteProduct = async (req, res, next) => {
+  const productId = req.body.productId;
+  try {
+    await req.user.removeFromCart(productId);
+    res.redirect("/cart");
+  } catch (err) {
+    console.log(err);
+    req.flash("error", "Failed to remove product from cart.");
+    res.redirect("/cart");
+  }
 };
 
-exports.getOrders = (req, res, next) => {
-  Order.find({ "user.userId": req.user._id })
-    .then((orders) => {
-      res.render("shop/orders", {
-        path: "/orders",
-        pageTitle: "Your Orders",
-        orders: orders,
-        isAuthenticated: req.session.isLoggedIn
-      });
-    })
-    .catch((err) => console.log(err));
+// ===== POST CREATE ORDER =====
+exports.postOrder = async (req, res, next) => {
+  try {
+    const user = await req.user.populate("cart.items.productId");
+    const products = user.cart.items.map((i) => {
+      return { quantity: i.quantity, product: { ...i.productId._doc } };
+    });
+    const order = new Order({
+      user: {
+        email: req.user.email,
+        userId: req.user,
+      },
+      products,
+    });
+    await order.save();
+    await req.user.clearCart();
+    res.redirect("/orders");
+  } catch (err) {
+    console.log(err);
+    req.flash("error", "Failed to create order.");
+    res.redirect("/cart");
+  }
+};
+
+exports.getOrders = async (req, res, next) => {
+  try {
+    const orders = await Order.find({ "user.userId": req.user._id });
+    res.render("shop/orders", {
+      path: "/orders",
+      pageTitle: "Your Orders",
+      orders,
+    });
+  } catch (err) {
+    console.log(err);
+    req.flash("error", "Failed to fetch orders.");
+    res.redirect("/");
+  }
 };
