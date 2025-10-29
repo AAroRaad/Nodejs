@@ -79,14 +79,14 @@ app.use(authRoutes);
 app.use(errorController.get404);
 
 // Global error handler (optional)
-app.use((error, req, res, next) => {
-  console.log(error);
-  res.status(500).render("500", {
-    pageTitle: "Error!",
-    path: "/500",
-    isAuthenticated: req.session.isLoggedIn,
-  });
-});
+// app.use((error, req, res, next) => {
+//   console.log(error);
+//   res.status(500).render("500", {
+//     pageTitle: "Error!",
+//     path: "/500",
+//     isAuthenticated: req.session.isLoggedIn,
+//   });
+// });
 
 mongoose
   .connect(MONGODB_URI)

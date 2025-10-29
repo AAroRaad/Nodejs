@@ -2,11 +2,11 @@ const { promisify } = require("util");
 const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const { Resend } = require("resend");
+const { validationResult } = require("express-validator");
 
 const randomBytesAsync = promisify(crypto.randomBytes);
 
 const User = require("../models/user");
-const { buffer } = require("stream/consumers");
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -15,24 +15,38 @@ exports.getLogin = (req, res, next) => {
   res.render("auth/login", {
     path: "/login",
     pageTitle: "Login",
+    oldInput: { email: "", password: "" },
+    validationErrors: []
   });
 };
 
 // ===== POST LOGIN =====
 exports.postLogin = async (req, res, next) => {
   const { email, password } = req.body;
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(422).render("auth/login", {
+      path: "/login",
+      pageTitle: "Login",
+      errorMessage: errors.array()[0].msg,
+      oldInput: { email, password },
+      validationErrors: errors.array()
+    });
+  }
+
   try {
     const user = await User.findOne({ email });
-    if (!user) {
-      req.flash("error", "Invalid email or password.");
-      return res.redirect("/login");
-    }
+    // if (!user) {
+    //   req.flash("error", "Invalid email or password.");
+    //   return res.redirect("/login");
+    // }
 
-    const doMatch = await bcrypt.compare(password, user.password);
-    if (!doMatch) {
-      req.flash("error", "Invalid email or password.");
-      return res.redirect("/login");
-    }
+    // const doMatch = await bcrypt.compare(password, user.password);
+    // if (!doMatch) {
+    //   req.flash("error", "Invalid email or password.");
+    //   return res.redirect("/login");
+    // }
 
     req.session.isLoggedIn = true;
     req.session.user = user;
@@ -50,23 +64,29 @@ exports.getSignup = (req, res, next) => {
   res.render("auth/signup", {
     path: "/signup",
     pageTitle: "Signup",
+    oldInput: { email: "", password: "", confirmPassword: "" },
+    validationErrors: []
   });
 };
 
 // ===== POST SIGNUP =====
 exports.postSignup = async (req, res, next) => {
   const { email, password, confirmPassword } = req.body;
-  if (password !== confirmPassword) {
-    req.flash("error", "Passwords do not match.");
-    return res.redirect("/signup");
-  }
-  try {
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      req.flash("error", "E-Mail exists already, please pick a different one.");
-      return res.redirect("/signup");
-    }
+  const errors = validationResult(req);
+  console.log(errors);
+  
 
+  if (!errors.isEmpty()) {
+    return res.status(422).render("auth/signup", {
+      path: "/signup",
+      pageTitle: "Signup",
+      errorMessage: errors.array()[0].msg,
+      oldInput: { email, password, confirmPassword },
+      validationErrors: errors.array()
+    });
+  }
+
+  try {
     const hashedPassword = await bcrypt.hash(password, 12);
     const user = new User({
       email,

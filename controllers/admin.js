@@ -1,4 +1,5 @@
 const Product = require("../models/product");
+const { validationResult } = require("express-validator");
 
 // ===== GET ADD PRODUCT =====
 exports.getAddProduct = (req, res, next) => {
@@ -6,6 +7,9 @@ exports.getAddProduct = (req, res, next) => {
     pageTitle: "Add Product",
     path: "/admin/add-product",
     editing: false,
+    hasError: false,
+    errorMessage: null,
+    validationErrors: [],
   });
 };
 
@@ -13,10 +17,28 @@ exports.getAddProduct = (req, res, next) => {
 exports.postAddProduct = async (req, res, next) => {
   const { title, imageUrl, price, description } = req.body;
 
-  if (!title || !price || !imageUrl || !description) {
-    req.flash("error", "All fields are required.");
-    return res.redirect("/admin/add-product");
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(422).render("admin/edit-product", {
+      pageTitle: "Add Product",
+      path: "/admin/add-product",
+      editing: false,
+      hasError: true,
+      product: {
+        title,
+        imageUrl,
+        price,
+        description,
+      },
+      errorMessage: errors.array()[0].msg,
+      validationErrors: errors.array(),
+    });
   }
+  // if (!title || !price || !imageUrl || !description) {
+  //   req.flash("error", "All fields are required.");
+  //   return res.redirect("/admin/add-product");
+  // }
 
   const product = new Product({
     title,
@@ -52,9 +74,12 @@ exports.getEditProduct = async (req, res, next) => {
 
     res.render("admin/edit-product", {
       product,
-      pageTitle: product.title,
+      pageTitle: "Edit Product",
       path: "/admin/edit-product",
       editing: editMode,
+      hasError: false,
+      errorMessage: null,
+      validationErrors: [],
     });
   } catch (err) {
     console.log(err);
@@ -65,6 +90,26 @@ exports.getEditProduct = async (req, res, next) => {
 // ===== POST EDIT PRODUCT =====
 exports.postEditProduct = async (req, res, next) => {
   const { productId, title, imageUrl, price, description } = req.body;
+
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(422).render("admin/edit-product", {
+      pageTitle: "Edit Product",
+      path: "/admin/edit-product",
+      editing: true,
+      hasError: true,
+      product: {
+        title,
+        imageUrl,
+        price,
+        description,
+        _id: productId,
+      },
+      errorMessage: errors.array()[0].msg,
+      validationErrors: errors.array(),
+    });
+  }
 
   try {
     const product = await Product.findById(productId);
