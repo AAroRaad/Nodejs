@@ -11,8 +11,9 @@ exports.getProducts = async (req, res, next) => {
       path: "/products",
     });
   } catch (err) {
-    console.log(err);
-    req.flash("error", "Failed to fetch products.");
+    const error = new Error(err);
+    error.httpStatusCode = 500;
+    return next(error);
   }
 };
 
@@ -31,8 +32,9 @@ exports.getProduct = async (req, res, next) => {
       path: "/products",
     });
   } catch (err) {
-    console.log(err);
-    req.flash("error", "Failed to fetch product.");
+    const error = new Error(err);
+    error.httpStatusCode = 500;
+    return next(error);
   }
 };
 
@@ -46,8 +48,9 @@ exports.getIndex = async (req, res, next) => {
       path: "/",
     });
   } catch (err) {
-    console.log(err);
-    req.flash("error", "Failed to fetch products.");
+    const error = new Error(err);
+    error.httpStatusCode = 500;
+    return next(error);
   }
 };
 
@@ -62,9 +65,9 @@ exports.getCart = async (req, res, next) => {
       products: products,
     });
   } catch (err) {
-    console.log(err);
-    req.flash("error", "Failed to load cart.");
-    res.redirect("/");
+    const error = new Error(err);
+    error.httpStatusCode = 500;
+    return next(error);
   }
 };
 
@@ -80,9 +83,9 @@ exports.postCart = async (req, res, next) => {
     await req.user.addToCart(product);
     res.redirect("/cart");
   } catch (err) {
-    console.log(err);
-    req.flash("error", "Failed to add product to cart.");
-    res.redirect("/products");
+    const error = new Error(err);
+    error.httpStatusCode = 500;
+    return next(error);
   }
 };
 
@@ -93,9 +96,9 @@ exports.postCartDeleteProduct = async (req, res, next) => {
     await req.user.removeFromCart(productId);
     res.redirect("/cart");
   } catch (err) {
-    console.log(err);
-    req.flash("error", "Failed to remove product from cart.");
-    res.redirect("/cart");
+    const error = new Error(err);
+    error.httpStatusCode = 500;
+    return next(error);
   }
 };
 
@@ -117,9 +120,9 @@ exports.postOrder = async (req, res, next) => {
     await req.user.clearCart();
     res.redirect("/orders");
   } catch (err) {
-    console.log(err);
-    req.flash("error", "Failed to create order.");
-    res.redirect("/cart");
+    const error = new Error(err);
+    error.httpStatusCode = 500;
+    return next(error);
   }
 };
 
@@ -132,8 +135,8 @@ exports.getOrders = async (req, res, next) => {
       orders,
     });
   } catch (err) {
-    console.log(err);
-    req.flash("error", "Failed to fetch orders.");
-    res.redirect("/");
+    const error = new Error(err);
+    error.httpStatusCode = 500;
+    return next(error);
   }
 };

@@ -21,7 +21,7 @@ router.post(
       .isLength({ min: 3 })
       .trim()
       .withMessage("All fields are required."),
-    body("imageUrl").isURL().withMessage("All fields are required."),
+    // body("imageUrl").isURL().withMessage("All fields are required."),
     body("price").isFloat().withMessage("All fields are required."),
     body("description")
       .isLength({ min: 5, max: 400 })

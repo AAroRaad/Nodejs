@@ -1,5 +1,6 @@
 const Product = require("../models/product");
 const { validationResult } = require("express-validator");
+const mongoose = require("mongoose");
 
 // ===== GET ADD PRODUCT =====
 exports.getAddProduct = (req, res, next) => {
@@ -35,12 +36,8 @@ exports.postAddProduct = async (req, res, next) => {
       validationErrors: errors.array(),
     });
   }
-  // if (!title || !price || !imageUrl || !description) {
-  //   req.flash("error", "All fields are required.");
-  //   return res.redirect("/admin/add-product");
-  // }
-
   const product = new Product({
+    // _id: new mongoose.Types.ObjectId("69008665ebc5173835bfa88d"),
     title,
     price,
     description,
@@ -54,9 +51,23 @@ exports.postAddProduct = async (req, res, next) => {
     req.flash("success", "Product added successfully");
     res.redirect("/admin/products");
   } catch (err) {
-    console.log(err);
-    req.flash("error", "Failed to create product.");
-    res.redirect("/admin/add-product");
+    // return res.status(500).render("admin/edit-product", {
+    //   pageTitle: "Add Product",
+    //   path: "/admin/add-product",
+    //   editing: false,
+    //   hasError: true,
+    //   product: {
+    //     title,
+    //     imageUrl,
+    //     price,
+    //     description,
+    //   },
+    //   errorMessage: 'Database opretaion failed, please try again.',
+    //   validationErrors: [],
+    // });
+    const error = new Error(err);
+    error.httpStatusCode = 500;
+    return next(error);
   }
 };
 
@@ -64,7 +75,8 @@ exports.postAddProduct = async (req, res, next) => {
 exports.getEditProduct = async (req, res, next) => {
   const editMode = req.query.edit;
   if (!editMode) {
-    return res.redirect("/");
+    req.flash("error", "Something went wrong!");
+    return res.redirect("/admin/products");
   }
 
   const productId = req.params.productId;
@@ -82,8 +94,9 @@ exports.getEditProduct = async (req, res, next) => {
       validationErrors: [],
     });
   } catch (err) {
-    console.log(err);
-    res.redirect("/admin/products");
+    const error = new Error(err);
+    error.httpStatusCode = 500;
+    return next(error);
   }
 };
 
@@ -130,9 +143,9 @@ exports.postEditProduct = async (req, res, next) => {
     req.flash("success", "Product updated successfully");
     res.redirect("/admin/products");
   } catch (err) {
-    console.log(err);
-    req.flash("error", "Failed to update product.");
-    res.redirect("/admin/products");
+    const error = new Error(err);
+    error.httpStatusCode = 500;
+    return next(error);
   }
 };
 
@@ -153,9 +166,9 @@ exports.postDeleteProduct = async (req, res, next) => {
     req.flash("success", "Product deleted successfully");
     res.redirect("/admin/products");
   } catch (err) {
-    console.log(err);
-    req.flash("error", "Failed to delete product.");
-    res.redirect("/admin/products");
+    const error = new Error(err);
+    error.httpStatusCode = 500;
+    return next(error);
   }
 };
 
@@ -171,8 +184,8 @@ exports.getProducts = async (req, res, next) => {
       path: "/admin/products",
     });
   } catch (err) {
-    console.log(err);
-    req.flash("error", "Failed to fetch products.");
-    res.redirect("/");
+    const error = new Error(err);
+    error.httpStatusCode = 500;
+    return next(error);
   }
 };

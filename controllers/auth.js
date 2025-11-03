@@ -16,7 +16,7 @@ exports.getLogin = (req, res, next) => {
     path: "/login",
     pageTitle: "Login",
     oldInput: { email: "", password: "" },
-    validationErrors: []
+    validationErrors: [],
   });
 };
 
@@ -31,7 +31,7 @@ exports.postLogin = async (req, res, next) => {
       pageTitle: "Login",
       errorMessage: errors.array()[0].msg,
       oldInput: { email, password },
-      validationErrors: errors.array()
+      validationErrors: errors.array(),
     });
   }
 
@@ -53,9 +53,9 @@ exports.postLogin = async (req, res, next) => {
     await req.session.save();
     res.redirect("/");
   } catch (err) {
-    console.log(err);
-    req.flash("error", "Something went wrong, please try again.");
-    res.redirect("/login");
+    const error = new Error(err);
+    error.httpStatusCode = 500;
+    return next(error);
   }
 };
 
@@ -65,7 +65,7 @@ exports.getSignup = (req, res, next) => {
     path: "/signup",
     pageTitle: "Signup",
     oldInput: { email: "", password: "", confirmPassword: "" },
-    validationErrors: []
+    validationErrors: [],
   });
 };
 
@@ -74,7 +74,6 @@ exports.postSignup = async (req, res, next) => {
   const { email, password, confirmPassword } = req.body;
   const errors = validationResult(req);
   console.log(errors);
-  
 
   if (!errors.isEmpty()) {
     return res.status(422).render("auth/signup", {
@@ -82,7 +81,7 @@ exports.postSignup = async (req, res, next) => {
       pageTitle: "Signup",
       errorMessage: errors.array()[0].msg,
       oldInput: { email, password, confirmPassword },
-      validationErrors: errors.array()
+      validationErrors: errors.array(),
     });
   }
 
@@ -109,9 +108,9 @@ exports.postSignup = async (req, res, next) => {
     req.flash("success", "Signup successful! Please login.");
     res.redirect("/login");
   } catch (err) {
-    console.log(err);
-    req.flash("error", "Something went wrong, please try again.");
-    res.redirect("/signup");
+    const error = new Error(err);
+    error.httpStatusCode = 500;
+    return next(error);
   }
 };
 
@@ -196,9 +195,9 @@ exports.postReset = async (req, res, next) => {
     req.flash("success", "Reset password link sent to your email.");
     res.redirect("/");
   } catch (err) {
-    console.log(err);
-    req.flash("error", "Something went wrong, please try again later.");
-    res.redirect("/reset-password");
+    const error = new Error(err);
+    error.httpStatusCode = 500;
+    return next(error);
   }
 };
 
@@ -220,8 +219,9 @@ exports.getNewPassword = async (req, res, next) => {
       passwordToken: token,
     });
   } catch (err) {
-    console.log(err);
-    res.redirect("/reset-password");
+    const error = new Error(err);
+    error.httpStatusCode = 500;
+    return next(error);
   }
 };
 
@@ -291,8 +291,8 @@ exports.postNewPassword = async (req, res, next) => {
     req.flash("success", "Your password has been reset successfully.");
     res.redirect("/login");
   } catch (err) {
-    console.log(err);
-    req.flash("error", "Something went wrong, please try again.");
-    res.redirect("/reset-password");
+    const error = new Error(err);
+    error.httpStatusCode = 500;
+    return next(error);
   }
 };
