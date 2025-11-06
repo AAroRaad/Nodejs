@@ -16,7 +16,7 @@ exports.getAddProduct = (req, res, next) => {
 
 // ===== POST ADD PRODUCT =====
 exports.postAddProduct = async (req, res, next) => {
-  const { title, imageUrl, price, description } = req.body;
+  const { title, image, price, description } = req.body;
 
   const errors = validationResult(req);
 
