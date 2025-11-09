@@ -6,14 +6,28 @@ const PDFDocument = require("pdfkit");
 const Product = require("../models/product");
 const Order = require("../models/order");
 
+const ITEMS_PER_PAGE = 1;
+
 // ===== GET ALL PRODUCTS =====
 exports.getProducts = async (req, res, next) => {
+    const page = +req.query.page || 1;
+  let totalItems;
   try {
-    const products = await Product.find();
+    const numProducts = await Product.find().countDocuments();
+    totalItems = numProducts;
+    const products = await Product.find()
+      .skip((page - 1) * ITEMS_PER_PAGE)
+      .limit(ITEMS_PER_PAGE);
     res.render("shop/product-list", {
       prods: products,
       pageTitle: "All Products",
       path: "/products",
+      currentPage: page,
+      hasNextPage: ITEMS_PER_PAGE * page < totalItems,
+      hasPreviousPage: page > 1,
+      nextPage: page + 1,
+      previousPage: page - 1,
+      lastPage: Math.ceil(totalItems / ITEMS_PER_PAGE),
     });
   } catch (err) {
     const error = new Error(err);
@@ -45,12 +59,24 @@ exports.getProduct = async (req, res, next) => {
 
 // ===== GET SHOP INDEX =====
 exports.getIndex = async (req, res, next) => {
+  const page = +req.query.page || 1;
+  let totalItems;
   try {
-    const products = await Product.find();
+    const numProducts = await Product.find().countDocuments();
+    totalItems = numProducts;
+    const products = await Product.find()
+      .skip((page - 1) * ITEMS_PER_PAGE)
+      .limit(ITEMS_PER_PAGE);
     res.render("shop/index", {
       prods: products,
       pageTitle: "Shop",
       path: "/",
+      currentPage: page,
+      hasNextPage: ITEMS_PER_PAGE * page < totalItems,
+      hasPreviousPage: page > 1,
+      nextPage: page + 1,
+      previousPage: page - 1,
+      lastPage: Math.ceil(totalItems / ITEMS_PER_PAGE),
     });
   } catch (err) {
     const error = new Error(err);
@@ -185,7 +211,7 @@ exports.getInvoice = async (req, res, next) => {
           `${prod.product.title} - ${prod.quantity} x $${prod.product.price}`
         );
     });
-    pdfDoc.text('--------');
+    pdfDoc.text("--------");
     pdfDoc.fontSize(20).text(`Total Price: $${totlPrice}`);
 
     pdfDoc.end();
