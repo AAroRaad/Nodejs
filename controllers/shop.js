@@ -1,8 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const stripe = require("stripe")(
-  "sk_test_51SRcQ3KFbwHfLM7CX4Mn5yRa2e5CodNQgvqfaSc1QffMtJwIteg5M4aUuEdFCH8fX0X1pCFM0HJSrcNBskziOJPQ00OarkBMEu"
-);
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 const PDFDocument = require("pdfkit");
 
@@ -157,8 +155,8 @@ exports.getCheckout = async (req, res, next) => {
           quantity: p.quantity,
         };
       }),
-      success_url: req.protocol + '://' + req.get('host') + '/checkout/success',
-      cancel_url: req.protocol + '://' + req.get('host') + '/checkout/cancelّ',
+      success_url: req.protocol + "://" + req.get("host") + "/checkout/success",
+      cancel_url: req.protocol + "://" + req.get("host") + "/checkout/cancelّ",
     });
 
     res.render("shop/checkout", {
