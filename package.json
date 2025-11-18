@@ -5,7 +5,7 @@
   "main": "aaro.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "cross-env NODE_ENV=production MONGO_USER=aarose7en_db_user MONGO_PASSWORD=SFhs4mc3y0gSDMt2 MONGO_DEFAULT_DATABASE=shop SESSION_SECRET=mysecret RESEND_API_KEY=re_3ewMshEx_9DPJfNNLPjjQYFfM33bv9zpU node app.js",
+    "start": "node app.js",
     "start-server": "node app.js",
     "start:dev": "nodemon app.js"
   },
