@@ -13,6 +13,10 @@ dist
 dist-ssr
 *.local
 
+server.cert
+server.key
+nodemon.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
