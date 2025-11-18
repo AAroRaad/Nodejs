@@ -1,0 +1,10 @@
+{
+  "env": {
+    "MONGO_USER": "aarose7en_db_user",
+    "MONGO_PASSWORD": "SFhs4mc3y0gSDMt2",
+    "MONGO_DEFAULT_DATABASE": "shop",
+    "SESSION_SECRET": "mysecret",
+    "PORT": "3000",
+    "RESEND_API_KEY": "re_3ewMshEx_9DPJfNNLPjjQYFfM33bv9zpU"
+  }
+}
